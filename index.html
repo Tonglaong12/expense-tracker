@@ -156,6 +156,8 @@
   .filter-chip { background: var(--card); border: 1.5px solid #B89A72; border-radius: 20px; padding: 5px 14px; font-size: 12px; white-space: nowrap; cursor: pointer; transition: all .2s; color: var(--text); }
   .filter-chip.active { background: var(--primary); border-color: var(--primary); color: #F5E6C8; }
 
+  .cat-chip { background: var(--card); border: 1.5px solid #C4A882; border-radius: 20px; padding: 5px 12px; font-size: 12px; cursor: pointer; color: var(--text); transition: all .15s; user-select: none; }
+  .cat-chip.selected { background: #5C3017; border-color: #5C3017; color: #F5E6C8; font-weight: 700; }
   @media (max-width: 430px) { body { max-width: 100vw; } .bottom-nav { max-width: 100vw; } }
 </style>
 </head>
@@ -268,8 +270,25 @@
       <label>จำนวนเงิน (บาท)</label>
       <input type="number" id="txAmount" placeholder="0.00" min="0" step="0.01">
     </div>
+    <div class="form-group">
+      <label>หมวดหมู่ <span style="color:#B89A72;font-weight:400">(ไม่บังคับ)</span></label>
+      <div id="catChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+        <div class="cat-chip" data-val="🍜 อาหาร/เครื่องดื่ม" onclick="selectCat(this)">🍜 อาหาร/เครื่องดื่ม</div>
+        <div class="cat-chip" data-val="🏠 ที่พัก" onclick="selectCat(this)">🏠 ที่พัก</div>
+        <div class="cat-chip" data-val="🛒 ช้อปปิ้ง" onclick="selectCat(this)">🛒 ช้อปปิ้ง</div>
+        <div class="cat-chip" data-val="📱 Applications" onclick="selectCat(this)">📱 Applications</div>
+        <div class="cat-chip" data-val="💡 ค่าน้ำ-ไฟ" onclick="selectCat(this)">💡 ค่าน้ำ-ไฟ</div>
+        <div class="cat-chip" data-val="📞 ค่าโทรศัพท์" onclick="selectCat(this)">📞 ค่าโทรศัพท์</div>
+        <div class="cat-chip" data-val="💼 เงินเดือน" onclick="selectCat(this)">💼 เงินเดือน</div>
+        <div class="cat-chip" data-val="💰 รายได้จากงานเสริม" onclick="selectCat(this)">💰 รายได้จากงานเสริม</div>
+        <div class="cat-chip" data-val="📈 กองทุน" onclick="selectCat(this)">📈 กองทุน</div>
+        <div class="cat-chip" data-val="📦 อื่นๆ" onclick="selectCat(this)">📦 อื่นๆ</div>
+        <div class="cat-chip" data-val="__custom__" onclick="selectCat(this)">✏️ พิมพ์เอง</div>
+      </div>
+      <input type="text" id="txCategoryCustom" placeholder="ระบุหมวดหมู่..." style="display:none;margin-top:8px">
+    </div>
     <input type="hidden" id="txDate">
-    <input type="hidden" id="txCategory" value="📦 ทั่วไป">
+    <input type="hidden" id="txCategory" value="">
     <input type="hidden" id="txNote" value="">
     <div class="btn-row" id="btnRow">
       <button class="btn btn-secondary" onclick="closeModal('addModal')">ยกเลิก</button>
@@ -340,12 +359,89 @@
       </button>
       <input type="file" id="importCSVInput" accept=".csv" style="display:none" onchange="importCSV(event)">
       <div id="importStatus" style="font-size:12px;color:#6B5E52;text-align:center;min-height:18px"></div>
+      <button class="btn" style="width:100%;font-size:15px;padding:14px;background:#4F5E62;color:#F5ECD8" onclick="closeModal('settingsModal');openRecurringModal()">
+        📋 ค่าใช้จ่ายล่วงหน้า
+      </button>
       <button class="btn btn-danger" style="width:100%;font-size:15px;padding:14px" onclick="clearCurrentMonth()">
         🗑️ ล้างข้อมูลเดือนที่เลือก
       </button>
     </div>
     <div style="margin-top:12px">
       <button class="btn btn-secondary" style="width:100%" onclick="closeModal('settingsModal')">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECURRING MODAL -->
+<div class="modal-overlay" id="recurringModal">
+  <div class="modal" style="max-height:92vh">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📋 ค่าใช้จ่ายล่วงหน้า</div>
+
+    <!-- Add form -->
+    <div style="background:var(--surface);border-radius:12px;padding:12px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:#7A6B5A;margin-bottom:10px">➕ เพิ่มรายการใหม่</div>
+      <div class="type-toggle" style="margin-bottom:10px">
+        <button class="type-btn expense active" id="recBtnExpense" onclick="setRecType('expense')">💸 รายจ่าย</button>
+        <button class="type-btn income" id="recBtnIncome" onclick="setRecType('income')">💰 รายรับ</button>
+      </div>
+      <div class="form-group">
+        <label>รายการ</label>
+        <input type="text" id="recName" placeholder="เช่น ค่าเช่า, เงินเดือน...">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="form-group">
+          <label>จำนวนเงิน (บาท)</label>
+          <input type="number" id="recAmount" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>วันที่ในเดือน</label>
+          <input type="number" id="recDay" placeholder="1-31" min="1" max="31">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>หมวดหมู่ <span style="color:#B89A72;font-weight:400">(ไม่บังคับ)</span></label>
+        <div id="recCatChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+          <div class="cat-chip" data-val="🍜 อาหาร/เครื่องดื่ม" onclick="selectRecCat(this)">🍜 อาหาร/เครื่องดื่ม</div>
+          <div class="cat-chip" data-val="🏠 ที่พัก" onclick="selectRecCat(this)">🏠 ที่พัก</div>
+          <div class="cat-chip" data-val="🛒 ช้อปปิ้ง" onclick="selectRecCat(this)">🛒 ช้อปปิ้ง</div>
+          <div class="cat-chip" data-val="📱 Applications" onclick="selectRecCat(this)">📱 Applications</div>
+          <div class="cat-chip" data-val="💡 ค่าน้ำ-ไฟ" onclick="selectRecCat(this)">💡 ค่าน้ำ-ไฟ</div>
+          <div class="cat-chip" data-val="📞 ค่าโทรศัพท์" onclick="selectRecCat(this)">📞 ค่าโทรศัพท์</div>
+          <div class="cat-chip" data-val="💼 เงินเดือน" onclick="selectRecCat(this)">💼 เงินเดือน</div>
+          <div class="cat-chip" data-val="💰 รายได้จากงานเสริม" onclick="selectRecCat(this)">💰 รายได้จากงานเสริม</div>
+          <div class="cat-chip" data-val="📈 กองทุน" onclick="selectRecCat(this)">📈 กองทุน</div>
+          <div class="cat-chip" data-val="📦 อื่นๆ" onclick="selectRecCat(this)">📦 อื่นๆ</div>
+          <div class="cat-chip" data-val="__custom__" onclick="selectRecCat(this)">✏️ พิมพ์เอง</div>
+        </div>
+        <input type="text" id="recCategoryCustom" placeholder="ระบุหมวดหมู่..." style="display:none;margin-top:8px">
+        <input type="hidden" id="recCategory" value="">
+      </div>
+      <div class="form-group">
+        <label>เดือนที่ใช้ (เว้นว่าง = ทุกเดือน)</label>
+        <div id="recMonthPicker" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="1" style="width:13px;height:13px"> ม.ค.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="2" style="width:13px;height:13px"> ก.พ.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="3" style="width:13px;height:13px"> มี.ค.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="4" style="width:13px;height:13px"> เม.ย.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="5" style="width:13px;height:13px"> พ.ค.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="6" style="width:13px;height:13px"> มิ.ย.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="7" style="width:13px;height:13px"> ก.ค.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="8" style="width:13px;height:13px"> ส.ค.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="9" style="width:13px;height:13px"> ก.ย.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="10" style="width:13px;height:13px"> ต.ค.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="11" style="width:13px;height:13px"> พ.ย.</label>
+          <label style="display:flex;align-items:center;gap:3px;font-size:12px;background:var(--card);padding:4px 8px;border-radius:20px;cursor:pointer;border:1px solid #C4A882"><input type="checkbox" class="rec-month-cb" value="12" style="width:13px;height:13px"> ธ.ค.</label>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="addRecurring()">บันทึก</button>
+    </div>
+
+    <!-- List -->
+    <div id="recurringList"></div>
+
+    <div style="margin-top:10px">
+      <button class="btn btn-secondary" style="width:100%" onclick="closeModal('recurringModal')">ปิด</button>
     </div>
   </div>
 </div>
@@ -610,7 +706,7 @@ function openAddModal() {
   document.getElementById('txName').value = '';
   document.getElementById('txAmount').value = '';
   document.getElementById('txDate').value = getSelectedDateStr();
-  document.getElementById('txCategory').value = '📦 ทั่วไป';
+  resetCatChips('');
   document.getElementById('txNote').value = '';
   document.getElementById('btnExpense').classList.add('active');
   document.getElementById('btnIncome').classList.remove('active');
@@ -629,7 +725,7 @@ function editTransaction(id) {
   document.getElementById('txName').value = t.name;
   document.getElementById('txAmount').value = t.amount;
   document.getElementById('txDate').value = t.date;
-  document.getElementById('txCategory').value = t.category || '📦 ทั่วไป';
+  resetCatChips(t.category || '');
   document.getElementById('txNote').value = '';
   if (t.type==='income') {
     document.getElementById('btnIncome').classList.add('active');
@@ -644,233 +740,31 @@ function editTransaction(id) {
   document.getElementById('addModal').classList.add('show');
 }
 
-function setType(t) {
-  txType = t;
-  document.getElementById('btnExpense').classList.toggle('active', t==='expense');
-  document.getElementById('btnIncome').classList.toggle('active', t==='income');
-}
-
-function saveTransaction() {
-  const name = document.getElementById('txName').value.trim();
-  const amount = parseFloat(document.getElementById('txAmount').value);
-  const date = document.getElementById('txDate').value;
-  if (!name || isNaN(amount) || amount<=0) { alert('กรุณากรอกรายการและจำนวนเงิน'); return; }
-  if (editingId) {
-    const idx = transactions.findIndex(t=>t.id===editingId);
-    transactions[idx] = { ...transactions[idx], type:txType, name, amount, date, category:'📦 ทั่วไป', note:'' };
+function selectCat(el) {
+  const val = el.dataset.val;
+  // deselect all
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
+  const customInput = document.getElementById('txCategoryCustom');
+  if (el.classList.contains('selected')) {
+    // toggle off
+    el.classList.remove('selected');
+    document.getElementById('txCategory').value = '';
+    customInput.style.display = 'none';
   } else {
-    transactions.push({ id: Date.now(), type:txType, name, amount, date, category:'📦 ทั่วไป', note:'' });
-  }
-  save(); closeModal('addModal'); refresh();
-}
-
-function openDelete(id) {
-  deletingId = id;
-  document.getElementById('deleteModal').classList.add('show');
-}
-
-function confirmDelete() {
-  transactions = transactions.filter(t=>t.id!==deletingId);
-  save(); closeModal('deleteModal'); refresh();
-}
-
-function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-
-function refresh() {
-  updateSummary();
-  if (currentTab==='calendar') renderCalendar();
-  if (currentTab==='list') renderList();
-  if (currentTab==='chart') renderChart();
-}
-
-// ========== SLIP ==========
-function openSlipModal() {
-  document.getElementById('slipPreview').style.display = 'none';
-  document.querySelector('#slipModal .slip-upload-icon').style.display = 'block';
-  document.querySelector('#slipModal .slip-upload-text').textContent = 'แตะเพื่อเลือกรูปสลิป';
-  document.getElementById('slipForm').style.display = 'none';
-  document.getElementById('slipSaveBtn').style.display = 'none';
-  document.getElementById('slipName').value = '';
-  document.getElementById('slipAmount').value = '';
-  document.getElementById('slipDate').value = todayStr();
-  slipType = 'expense';
-  document.getElementById('slipBtnExpense').classList.add('active');
-  document.getElementById('slipBtnIncome').classList.remove('active');
-  document.getElementById('slipModal').classList.add('show');
-}
-
-function handleSlip(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    const img = document.getElementById('slipPreview');
-    img.src = ev.target.result;
-    img.style.display = 'block';
-    document.querySelector('#slipModal .slip-upload-icon').style.display = 'none';
-    document.querySelector('#slipModal .slip-upload-text').textContent = 'เปลี่ยนรูป';
-    document.getElementById('slipForm').style.display = 'block';
-    document.getElementById('slipSaveBtn').style.display = 'block';
-    // Try to auto-detect amount from filename or just show form
-    if (file.name) {
-      const nums = file.name.match(/[\d,]+\.?\d*/g);
-      if (nums && nums.length > 0) {
-        const candidate = parseFloat(nums[0].replace(',',''));
-        if (candidate > 0) document.getElementById('slipAmount').value = candidate;
-      }
+    el.classList.add('selected');
+    if (val === '__custom__') {
+      customInput.style.display = 'block';
+      customInput.focus();
+      document.getElementById('txCategory').value = '';
+    } else {
+      customInput.style.display = 'none';
+      document.getElementById('txCategory').value = val;
     }
-  };
-  reader.readAsDataURL(file);
-}
-
-function setSlipType(t) {
-  slipType = t;
-  document.getElementById('slipBtnExpense').classList.toggle('active', t==='expense');
-  document.getElementById('slipBtnIncome').classList.toggle('active', t==='income');
-}
-
-function saveSlip() {
-  const name = document.getElementById('slipName').value.trim() || 'สลิปโอนเงิน';
-  const amount = parseFloat(document.getElementById('slipAmount').value);
-  const date = document.getElementById('slipDate').value;
-  const category = document.getElementById('slipCategory').value;
-  if (isNaN(amount) || amount<=0 || !date) { alert('กรุณาระบุจำนวนเงินและวันที่'); return; }
-  transactions.push({ id: Date.now(), type:slipType, name, amount, date, category, note:'จากสลิป' });
-  save(); closeModal('slipModal'); refresh();
-}
-
-// ========== CLICK OUTSIDE ==========
-document.querySelectorAll('.modal-overlay').forEach(el => {
-  el.addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('show');
-  });
-});
-
-function openSettings() {
-  const m = currentDate.getMonth(), y = currentDate.getFullYear();
-  const months_th = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-  document.getElementById('settingsMonthLabel').textContent = `เดือนที่เลือก: ${months_th[m]} ${y+543}`;
-  document.getElementById('importStatus').textContent = '';
-  document.getElementById('settingsModal').classList.add('show');
-}
-
-function clearCurrentMonth() {
-  const m = currentDate.getMonth(), y = currentDate.getFullYear();
-  const months_th = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-  const label = `${months_th[m]} ${y+543}`;
-  if (!confirm(`ลบรายการทั้งหมดในเดือน ${label} ใช่ไหม?`)) return;
-  transactions = transactions.filter(t => {
-    const d = new Date(t.date);
-    return !(d.getMonth() === m && d.getFullYear() === y);
-  });
-  save(); refresh();
-  closeModal('settingsModal');
-}
-
-function parseCSVLine(line) {
-  const result = [];
-  let cur = '', inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') { inQ = !inQ; }
-    else if (c === ',' && !inQ) { result.push(cur.trim()); cur = ''; }
-    else { cur += c; }
   }
-  result.push(cur.trim());
-  return result;
 }
 
-function toISODate(raw) {
-  if (!raw) return '';
-  raw = raw.trim();
-  // DD/MM/YYYY → YYYY-MM-DD
-  const m1 = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
-  // YYYY-MM-DD already
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-  return '';
-}
-
-function importCSV(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    try {
-      const text = ev.target.result.replace(/^﻿/, '');
-      const lines = text.split(/\r?\n/).filter(l => l.trim());
-      if (lines.length < 2) { document.getElementById('importStatus').textContent = '❌ ไฟล์ว่างหรือไม่ถูกต้อง'; return; }
-
-      // Find header row (row that contains 'วันที่' or 'date')
-      let headerIdx = lines.findIndex(l => {
-        const lower = l.toLowerCase();
-        return lower.includes('วันที่') || lower.includes('date');
-      });
-      if (headerIdx < 0) { document.getElementById('importStatus').textContent = '❌ ไม่พบแถว header'; return; }
-
-      const header = parseCSVLine(lines[headerIdx]).map(h => h.replace(/"/g,'').trim());
-      const iDate  = header.findIndex(h => h.includes('วันที่') || h.toLowerCase().includes('date'));
-      const iName  = header.findIndex(h => h.includes('รายการ') || h.toLowerCase().includes('name'));
-      const iInc   = header.findIndex(h => h.includes('รายรับ') || h.toLowerCase().includes('income'));
-      const iExp   = header.findIndex(h => h.includes('รายจ่าย') || h.toLowerCase().includes('expense'));
-      const iAmt   = header.findIndex(h => h.includes('จำนวน') || h.toLowerCase().includes('amount'));
-      const iType  = header.findIndex(h => h.includes('ประเภท') || h.toLowerCase().includes('type'));
-      const iCat   = header.findIndex(h => h.includes('หมวดหมู่') || h.toLowerCase().includes('category'));
-
-      if (iDate < 0 || iName < 0) { document.getElementById('importStatus').textContent = '❌ ไม่พบคอลัมน์วันที่หรือรายการ'; return; }
-
-      let added = 0, skipped = 0;
-      const existingKeys = new Set(transactions.map(t => `${t.date}|${t.name}|${t.amount}`));
-
-      lines.slice(headerIdx + 1).forEach(line => {
-        if (!line.trim()) return;
-        const cols = parseCSVLine(line);
-        const rawDate = cols[iDate] || '';
-        const name    = cols[iName] || '';
-        const date    = toISODate(rawDate);
-
-        // Determine amount and type
-        let amount = 0, type = 'expense';
-        if (iInc >= 0 && iExp >= 0) {
-          // SaveMoney format: separate income/expense columns
-          const incVal = parseFloat((cols[iInc]||'').replace(/,/g,''));
-          const expVal = parseFloat((cols[iExp]||'').replace(/,/g,''));
-          if (!isNaN(incVal) && incVal > 0) { amount = incVal; type = 'income'; }
-          else if (!isNaN(expVal) && expVal > 0) { amount = expVal; type = 'expense'; }
-        } else if (iAmt >= 0) {
-          amount = parseFloat((cols[iAmt]||'').replace(/,/g,''));
-          if (iType >= 0) {
-            const t = cols[iType] || '';
-            type = (t.includes('รับ') || t.toLowerCase().includes('income')) ? 'income' : 'expense';
-          }
-        }
-
-        const category = iCat >= 0 && cols[iCat] ? cols[iCat] : '📦 ทั่วไป';
-
-        if (!date || !name || isNaN(amount) || amount <= 0) { skipped++; return; }
-        const key = `${date}|${name}|${amount}`;
-        if (existingKeys.has(key)) { skipped++; return; }
-        transactions.push({ id: Date.now() + Math.random(), type, name, amount, date, category, note: '' });
-        existingKeys.add(key);
-        added++;
-      });
-
-      save(); refresh();
-      document.getElementById('importStatus').textContent =
-        `✅ นำเข้าสำเร็จ ${added} รายการ${skipped > 0 ? ' (ข้าม ' + skipped + ' รายการ)' : ''}`;
-      document.getElementById('importCSVInput').value = '';
-    } catch(err) {
-      document.getElementById('importStatus').textContent = '❌ เกิดข้อผิดพลาด: ' + err.message;
-    }
-  };
-  reader.readAsText(file, 'UTF-8');
-}
-
-function exportCSV() {
-  const rows = [['วันที่','ประเภท','รายการ','จำนวนเงิน']];
-  const sorted = [...transactions].sort((a,b)=>a.date.localeCompare(b.date));
-  sorted.forEach(t => {
-    rows.push([t.date, t.type==='income'?'รายรับ':'รายจ่าย', t.name, t.amount]);
-  });
-  const csv = '﻿' + rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv
+function resetCatChips(currentCat) {
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
+  document.getElementById('txCategoryCustom').style.display = 'none';
+  document.getElementById('txCategoryCustom').value = '';
+  if (!currentCat) { document.getElementById('txCategory').value = ''; retu
