@@ -767,4 +767,55 @@ function resetCatChips(currentCat) {
   document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('selected'));
   document.getElementById('txCategoryCustom').style.display = 'none';
   document.getElementById('txCategoryCustom').value = '';
-  if (!currentCat) { document.getElementById('txCategory').value = ''; retu
+  if (!currentCat) { document.getElementById('txCategory').value = ''; return; }
+  const chip = Array.from(document.querySelectorAll('.cat-chip')).find(c => c.dataset.val === currentCat);
+  if (chip) {
+    chip.classList.add('selected');
+    document.getElementById('txCategory').value = currentCat;
+  } else {
+    // custom value
+    const customChip = document.querySelector('.cat-chip[data-val="__custom__"]');
+    if (customChip) customChip.classList.add('selected');
+    document.getElementById('txCategoryCustom').style.display = 'block';
+    document.getElementById('txCategoryCustom').value = currentCat;
+    document.getElementById('txCategory').value = currentCat;
+  }
+}
+
+function setType(t) {
+  txType = t;
+  document.getElementById('btnExpense').classList.toggle('active', t==='expense');
+  document.getElementById('btnIncome').classList.toggle('active', t==='income');
+}
+
+function saveTransaction() {
+  const name = document.getElementById('txName').value.trim();
+  const amount = parseFloat(document.getElementById('txAmount').value);
+  const date = document.getElementById('txDate').value;
+  // get category: check if custom input is visible
+  const customInput = document.getElementById('txCategoryCustom');
+  let category = document.getElementById('txCategory').value;
+  if (customInput.style.display !== 'none' && customInput.value.trim()) {
+    category = customInput.value.trim();
+  }
+  if (!name || isNaN(amount) || amount<=0) { alert('กรุณากรอกรายการและจำนวนเงิน'); return; }
+  if (editingId) {
+    const idx = transactions.findIndex(t=>t.id===editingId);
+    transactions[idx] = { ...transactions[idx], type:txType, name, amount, date, category, note:'' };
+  } else {
+    transactions.push({ id: Date.now()+Math.random(), type:r.type, name:r.name, amount:r.amount, date:dateStr, category: r.category || '📅 ล่วงหน้า', note:'' });
+    existingKeys.add(key);
+    added++;
+  });
+  save(); refresh();
+  alert('✅ เพิ่ม ' + added + ' รายการ' + (skipped > 0 ? ' (ข้าม ' + skipped + ' ที่มีแล้ว)' : ''));
+}
+
+// ========== INIT ==========
+initSampleData();
+updateSummary();
+renderCalendar();
+selectDay(todayStr(), new Date().getDate());
+</script>
+</body>
+</html>
